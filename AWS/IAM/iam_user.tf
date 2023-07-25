@@ -85,7 +85,7 @@ resource "aws_iam_policy" "jenkins_user_policy" {
 }
 
 resource "aws_iam_user_policy_attachment" "jenkins_user_policy_attachment" {
-  user       = aws_iam_user.jenkins_user.name
+  user       = aws_iam_user.jenkins.name
   policy_arn = aws_iam_policy.jenkins_user_policy.arn
 }
 
