@@ -25,6 +25,7 @@ resource "aws_iam_policy" "jenkins_user_policy" {
           "ecr:GetDownloadUrlForLayer",
           "ecr:GetRepositoryPolicy",
           "ecr:ListImages",
+          "ecr:ListTagsForResource",
           "ecr:PutImage",
           "ecr:InitiateLayerUpload",
           "ecr:UploadLayerPart",
