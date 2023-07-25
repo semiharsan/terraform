@@ -20,7 +20,7 @@ resource "aws_iam_user_policy_attachment" "ecs_policy_attachment" {
 }
 
 resource "aws_iam_access_key" "iam_user_access_key" {
-  user = var.iam_user_name
+  user = aws_iam_user.jenkins.name
 }
 
 resource "local_file" "access_key_file" {
