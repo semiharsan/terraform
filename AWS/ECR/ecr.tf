@@ -9,3 +9,7 @@ resource "aws_ecr_repository" "arsit_ecr_repo" {
     scan_on_push = true
   }
 }
+
+output "ecr_repository_url" {
+  value = aws_ecr_repository.arsit_ecr_repo.repository_url
+}
