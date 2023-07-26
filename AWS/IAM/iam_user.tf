@@ -1,7 +1,5 @@
 provider "aws" {
   region = var.aws_region
-  access_key = var.cli_usr_access_key
-  secret_key = var.cli_usr_secret_key
 }
 
 resource "aws_iam_user" "jenkins" {
