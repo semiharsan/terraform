@@ -10,6 +10,10 @@ resource "aws_ecr_repository" "arsit_ecr_repo" {
   }
 }
 
+output "ecr_id" {
+  value = aws_ecr_repository.arsit_ecr_repo.id
+}
+
 output "ecr_registry_id" {
   value = aws_ecr_repository.arsit_ecr_repo.registry_id
 }
