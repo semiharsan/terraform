@@ -68,7 +68,7 @@ resource "aws_eks_fargate_profile" "fargate_profile" {
 
 ################Patch CoreDNS Deployment##############################################
 provider "kubernetes" {
-  config_path = "C:\\Users\\semih\\.kube\\config"  # Path to your kubeconfig file
+  config_path = "/root/.kube/config"  # Path to your kubeconfig file
 }
 
 resource "null_resource" "patch_coredns" {
