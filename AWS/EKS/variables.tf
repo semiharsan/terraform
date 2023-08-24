@@ -19,3 +19,9 @@ variable "fargate_profile_name" {
   type        = string
   default     = null
 }
+
+variable "config_path" {
+  description = "Path for your Kube config file"
+  type        = string
+  default     = null
+}
