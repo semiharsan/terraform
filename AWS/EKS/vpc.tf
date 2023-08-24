@@ -1,22 +1,20 @@
 provider "aws" {
-  region = "eu-west-2"
+  region = var.region
 }
 
 data "aws_caller_identity" "current" {}
-data "aws_partition" "current" {}
 data "aws_availability_zones" "available" {}
 
 ################VPC######################################################
 resource "aws_vpc" "main" {
-  cidr_block           = "10.0.0.0/16"
-  enable_dns_hostnames = true
-  enable_dns_support   = true
-  instance_tenancy     = "default"
+  cidr_block            = var.vpc_cidr
+  enable_dns_hostnames  = true
+  enable_dns_support    = true
+  #instance_tenancy     = "default"
 
   tags = {
-    Name = "EKS_VPC"
-    "kubernetes.io/cluster-name" = "arsit-eks-cluster"
-    "kubernetes.io/cluster/cluster-oidc-enabled" = "false"
+    Name                          = "${var.cluster_name}_Vpc"
+    "kubernetes.io/cluster-name"  = var.cluster_name
   }
 
 }
@@ -26,98 +24,66 @@ resource "aws_internet_gateway" "igw" {
   vpc_id = aws_vpc.main.id
 
     tags = {
-    Name = "EKS_Internet_GW"
-    "kubernetes.io/cluster-name" = "arsit-eks-cluster"
-    "kubernetes.io/cluster/cluster-oidc-enabled" = "false"
+    Name                         = "${var.cluster_name}_Internet_Gateway"
+    "kubernetes.io/cluster-name" = var.cluster_name
   }
 }
 
 ################Subnets######################################################
-
 locals {
   availability_zones = data.aws_availability_zones.available.names
 }
 
-resource "aws_subnet" "eks_private" {
-  count       = length(local.availability_zones)
-  vpc_id      = aws_vpc.main.id
-  cidr_block  = "10.0.${count.index + 1}.0/24"
-  availability_zone = local.availability_zones[count.index]
-
-  tags = {
-    Name = "EKS_Private_Subnet_${local.availability_zones[count.index]}"
-    "kubernetes.io/role/internal-elb"           = "1"
-    "kubernetes.io/cluster/arsit-eks-cluster" = "owned"
-  }
-}
-
 resource "aws_subnet" "private" {
-  count       = length(local.availability_zones)
-  vpc_id      = aws_vpc.main.id
-  cidr_block  = "10.0.${count.index * 16 + 32}.0/24"
+  count             = length(local.availability_zones)
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = cidrsubnet(aws_vpc.main.cidr_block, 4, count.index)
   availability_zone = local.availability_zones[count.index]
 
   tags = {
-    Name = "FargateProfiles_Private_Subnet_${local.availability_zones[count.index]}"
+    Name = "${var.cluster_name}_Private_Subnet_${local.availability_zones[count.index]}"
     "kubernetes.io/role/internal-elb"           = "1"
-    "kubernetes.io/cluster/arsit-eks-cluster" = "owned"
+    "kubernetes.io/cluster/${var.cluster_name}" = "owned"
   }
 }
 
 resource "aws_subnet" "public" {
-  count       = length(local.availability_zones)
-  vpc_id      = aws_vpc.main.id
-  cidr_block  = "10.0.${count.index + 5}.0/24"
+  count             = length(local.availability_zones)
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = cidrsubnet(aws_vpc.main.cidr_block, 4, count.index + 4)
   availability_zone = local.availability_zones[count.index]
   map_public_ip_on_launch = true
 
   tags = {
-    Name = "EKS_Public_Subnet_${local.availability_zones[count.index]}"
+    Name = "${var.cluster_name}_Public_Subnet_${local.availability_zones[count.index]}"
     "kubernetes.io/role/elb"                    = "1"
-    "kubernetes.io/cluster/arsit-eks-cluster" = "owned"
+    "kubernetes.io/cluster/${var.cluster_name}" = "owned"
   }
 }
 
-
-################Nat IP######################################################
+################Nat IP & Gateway###################################################
 resource "aws_eip" "nat" {
   domain = "vpc"
 
   tags = {
-    Name = "EKS_NAT_EIP"
-    "kubernetes.io/cluster-name" = "arsit-eks-cluster"
-    "kubernetes.io/cluster/cluster-oidc-enabled" = "false"
+    Name = "${var.cluster_name}_EIP"
+    "kubernetes.io/cluster-name" = var.cluster_name
   }
 }
 
-################Nat Gateway######################################################
 resource "aws_nat_gateway" "nat" {
   allocation_id = aws_eip.nat.id
-  subnet_id     = aws_subnet.private[0].id
+  subnet_id     = aws_subnet.public[0].id
 
   tags = {
-    Name = "EKS_NAT_Gateway"
-    "kubernetes.io/cluster-name" = "arsit-eks-cluster"
-    "kubernetes.io/cluster/cluster-oidc-enabled" = "false"
+    Name = "${var.cluster_name}_NAT_Gateway"
+    "kubernetes.io/cluster-name" = var.cluster_name
   }
 }
 
 ################Route Table######################################################
-resource "aws_route_table" "eks_private" {
-  #count = length(local.availability_zones)
-  vpc_id = aws_vpc.main.id
-
-  
-
-  tags = {
-    Name = "EKS_Private_Route_Table"
-    "kubernetes.io/cluster-name" = "arsit-eks-cluster"
-    "kubernetes.io/cluster/cluster-oidc-enabled" = "false"
-  }
-}
-
 resource "aws_route_table" "private" {
-  count = length(local.availability_zones)
+  count  = length(local.availability_zones)
   vpc_id = aws_vpc.main.id
 
   route {
@@ -126,9 +92,8 @@ resource "aws_route_table" "private" {
   }
 
   tags = {
-    Name = "FargateProfiles_Private_Route_Table_${local.availability_zones[count.index]}"
-    "kubernetes.io/cluster-name" = "arsit-eks-cluster"
-    "kubernetes.io/cluster/cluster-oidc-enabled" = "false"
+    Name = "${var.cluster_name}_Private_Route_Table_${local.availability_zones[count.index]}"
+    "kubernetes.io/cluster-name" = var.cluster_name
   }
 }
 
@@ -141,16 +106,9 @@ resource "aws_route_table" "public" {
   }
 
   tags = {
-    Name = "EKS_Public_Route_Table"
-    "kubernetes.io/cluster-name" = "arsit-eks-cluster"
-    "kubernetes.io/cluster/cluster-oidc-enabled" = "false"
+    Name = "${var.cluster_name}_Public_Route_Table}"
+    "kubernetes.io/cluster-name" = var.cluster_name
   }
-}
-
-resource "aws_route_table_association" "eks_private" {
-  count          = length(aws_subnet.eks_private)
-  subnet_id      = aws_subnet.eks_private[count.index].id
-  route_table_id = aws_route_table.eks_private.id
 }
 
 resource "aws_route_table_association" "private" {
