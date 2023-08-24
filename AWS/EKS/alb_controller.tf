@@ -12,7 +12,7 @@
 
 provider "helm" {
   kubernetes {
-    config_path = "C:\\Users\\semih\\.kube\\config"  # Path to your kubeconfig file
+    config_path = var.config_path  # Path to your kubeconfig file
   }
 }
 
