@@ -15,3 +15,8 @@ variable "fargate_profile_name" {
   description = "Name of the Fargate Profile in EKS cluster"
   type        = string
 }
+
+variable "config_path" {
+  description = "Path for your Kube config file"
+  type        = string
+}
