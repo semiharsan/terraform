@@ -79,7 +79,7 @@ resource "null_resource" "patch_coredns" {
   provisioner "local-exec" {
     environment = {
       AWS_REGION = var.region  # This is your pipeline variable
-      EKS_CLUSTER_NAME = var.eks_cluster_name  # This is your pipeline variable
+      EKS_CLUSTER_NAME = var.cluster_name  # This is your pipeline variable
     }
     command = <<-EOT
       sudo -u jenkins aws eks update-kubeconfig --region $AWS_REGION --name $EKS_CLUSTER_NAME
