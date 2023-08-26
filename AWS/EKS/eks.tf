@@ -214,5 +214,5 @@ resource "null_resource" "patch_coredns" {
     EOT
   }
 
-  depends_on = [aws_eks_fargate_profile.fargate_profile]
+  depends_on = [aws_eks_cluster.eks_cluster]
 }
