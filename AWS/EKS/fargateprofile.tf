@@ -89,13 +89,27 @@ resource "null_resource" "patch_coredns" {
       kubectl -n kube-system wait deployment/coredns --for=condition=Available --timeout=60s
       kubectl -n kube-system wait pods -l k8s-app=kube-dns --for=condition=Ready --timeout=60s
       kubectl -n kube-system get all
-      while ! curl -k --output /dev/null --silent --head --fail "$EKS_CLUSTER_ENDPOINT"; do
-      echo "Cluster endpoint is not accessible. Retrying in 3 seconds..."
-      sleep 3
-      done
-      echo "Cluster endpoint is accessible"
     EOT
   }
 
   depends_on = [aws_eks_fargate_profile.fargate_profile]
+}
+
+resource "kubernetes_service_account" "aws_load_balancer_controller" {
+  metadata {
+    name      = "aws-load-balancer-controller"
+    namespace = "kube-system"
+
+    labels = {
+      "app.kubernetes.io/component"       = "controller"
+      "app.kubernetes.io/name"            = "aws-load-balancer-controller"
+      "eks.amazonaws.com/fargate-profile" = var.fargate_profile_name
+    }
+
+    annotations = {
+      "eks.amazonaws.com/role-arn" = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/AmazonEKSLoadBalancerControllerRole"
+    }
+  }
+
+  depends_on = [null_resource.patch_coredns]
 }
