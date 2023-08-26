@@ -13,6 +13,7 @@ provider "helm" {
     args        = ["eks", "get-token", "--cluster-name", var.cluster_name]
     command     = "aws"
   }
+  }
 }
 
 resource "kubernetes_service_account" "aws_load_balancer_controller" {
