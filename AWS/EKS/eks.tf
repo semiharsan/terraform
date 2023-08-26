@@ -105,6 +105,9 @@ resource "aws_eks_cluster" "eks_cluster" {
   depends_on = [aws_subnet.public,aws_subnet.private]
 }
 
+output "eks_cluster_endpoint" {
+  value = aws_eks_cluster.eks_cluster.endpoint
+}
 #################OIDC######################################################
 data "tls_certificate" "eks" {
   url = aws_eks_cluster.eks_cluster.identity[0].oidc[0].issuer
