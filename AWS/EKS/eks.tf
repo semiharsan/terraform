@@ -108,6 +108,14 @@ resource "aws_eks_cluster" "eks_cluster" {
 output "eks_cluster_endpoint" {
   value = aws_eks_cluster.eks_cluster.endpoint
 }
+
+data "aws_eks_cluster" "eks_cluster" {
+  name = aws_eks_cluster.eks_cluster.name
+}
+
+data "aws_eks_cluster_auth" "eks_cluster" {
+  name = aws_eks_cluster.eks_cluster.name
+}
 #################OIDC######################################################
 data "tls_certificate" "eks" {
   url = aws_eks_cluster.eks_cluster.identity[0].oidc[0].issuer
