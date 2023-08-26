@@ -71,31 +71,4 @@ resource "aws_eks_fargate_profile" "fargate_profile" {
 #  config_path = var.config_path   # Path to your kubeconfig file
 #}
 
-provider "kubernetes" {
-  host                   = data.aws_eks_cluster.eks_cluster.endpoint
-  cluster_ca_certificate = base64decode(data.aws_eks_cluster.eks_cluster.certificate_authority.0.data)
-  token                  = data.aws_eks_cluster_auth.eks_cluster.token
-}
 
-resource "null_resource" "patch_coredns" {
-  triggers = {
-    eks_cluster_id = aws_eks_cluster.eks_cluster.id
-  }
-
-  provisioner "local-exec" {
-    environment = {
-      AWS_REGION = var.region  # This is your pipeline variable
-      EKS_CLUSTER_NAME = var.cluster_name  # This is your pipeline variable
-      EKS_CLUSTER_ENDPOINT = aws_eks_cluster.eks_cluster.endpoint  # This is eks resource output value
-    }
-    command = <<-EOT
-      kubectl patch deployment coredns -n kube-system --type json -p='[{"op": "remove", "path": "/spec/template/metadata/annotations/eks.amazonaws.com~1compute-type"}]'
-      kubectl rollout restart -n kube-system deployment coredns
-      kubectl -n kube-system wait deployment/coredns --for=condition=Available --timeout=60s
-      kubectl -n kube-system wait pods -l k8s-app=kube-dns --for=condition=Ready --timeout=60s
-      kubectl -n kube-system get all
-    EOT
-  }
-
-  depends_on = [aws_eks_fargate_profile.fargate_profile]
-}
