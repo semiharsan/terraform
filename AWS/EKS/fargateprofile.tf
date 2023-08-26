@@ -97,7 +97,6 @@ resource "null_resource" "patch_coredns" {
       EKS_CLUSTER_ENDPOINT = aws_eks_cluster.eks_cluster.endpoint  # This is eks resource output value
     }
     command = <<-EOT
-      sudo -u jenkins aws eks update-kubeconfig --region $AWS_REGION --name $EKS_CLUSTER_NAME
       kubectl patch deployment coredns -n kube-system --type json -p='[{"op": "remove", "path": "/spec/template/metadata/annotations/eks.amazonaws.com~1compute-type"}]'
       kubectl rollout restart -n kube-system deployment coredns
       kubectl -n kube-system wait deployment/coredns --for=condition=Available --timeout=60s
@@ -107,23 +106,4 @@ resource "null_resource" "patch_coredns" {
   }
 
   depends_on = [aws_eks_fargate_profile.fargate_profile]
-}
-
-resource "kubernetes_service_account" "aws_load_balancer_controller" {
-  metadata {
-    name      = "aws-load-balancer-controller"
-    namespace = "kube-system"
-
-    labels = {
-      "app.kubernetes.io/component"       = "controller"
-      "app.kubernetes.io/name"            = "aws-load-balancer-controller"
-      "eks.amazonaws.com/fargate-profile" = var.fargate_profile_name
-    }
-
-    annotations = {
-      "eks.amazonaws.com/role-arn" = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/AmazonEKSLoadBalancerControllerRole"
-    }
-  }
-
-  depends_on = [null_resource.patch_coredns]
 }
