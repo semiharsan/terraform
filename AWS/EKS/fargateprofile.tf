@@ -80,6 +80,7 @@ resource "null_resource" "patch_coredns" {
     environment = {
       AWS_REGION = var.region  # This is your pipeline variable
       EKS_CLUSTER_NAME = var.cluster_name  # This is your pipeline variable
+      EKS_CLUSTER_ENDPOINT = aws_eks_cluster.eks_cluster.endpoint  # This is eks resource output value
     }
     command = <<-EOT
       sudo -u jenkins aws eks update-kubeconfig --region $AWS_REGION --name $EKS_CLUSTER_NAME
@@ -88,6 +89,11 @@ resource "null_resource" "patch_coredns" {
       kubectl -n kube-system wait deployment/coredns --for=condition=Available --timeout=60s
       kubectl -n kube-system wait pods -l k8s-app=kube-dns --for=condition=Ready --timeout=60s
       kubectl -n kube-system get all
+      while ! curl --output /dev/null --silent --head --fail "$EKS_CLUSTER_ENDPOINT"; do
+      echo "Cluster endpoint is not accessible. Retrying in 3 seconds..."
+      sleep 3
+      done
+      echo "Cluster endpoint is accessible"
     EOT
   }
 
