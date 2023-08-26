@@ -1,7 +1,34 @@
+#provider "helm" {
+#  kubernetes {
+#    config_path = var.config_path  # Path to your kubeconfig file
+#  }
+#}
+
 provider "helm" {
   kubernetes {
-    config_path = var.config_path  # Path to your kubeconfig file
+    host                   = data.aws_eks_cluster.eks_cluster.endpoint
+    cluster_ca_certificate = base64decode(data.aws_eks_cluster.eks_cluster.certificate_authority.0.data)
+    token                  = data.aws_eks_cluster_auth.eks_cluster.token
   }
+}
+
+resource "kubernetes_service_account" "aws_load_balancer_controller" {
+  metadata {
+    name      = "aws-load-balancer-controller"
+    namespace = "kube-system"
+
+    labels = {
+      "app.kubernetes.io/component"       = "controller"
+      "app.kubernetes.io/name"            = "aws-load-balancer-controller"
+      "eks.amazonaws.com/fargate-profile" = var.fargate_profile_name
+    }
+
+    annotations = {
+      "eks.amazonaws.com/role-arn" = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/AmazonEKSLoadBalancerControllerRole"
+    }
+  }
+
+  depends_on = [null_resource.patch_coredns]
 }
 
 resource "helm_release" "aws-load-balancer-controller" {
