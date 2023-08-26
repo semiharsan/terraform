@@ -89,7 +89,7 @@ resource "null_resource" "patch_coredns" {
       kubectl -n kube-system wait deployment/coredns --for=condition=Available --timeout=60s
       kubectl -n kube-system wait pods -l k8s-app=kube-dns --for=condition=Ready --timeout=60s
       kubectl -n kube-system get all
-      while ! curl --output /dev/null --silent --head --fail "$EKS_CLUSTER_ENDPOINT"; do
+      while ! curl -k --output /dev/null --silent --head --fail "$EKS_CLUSTER_ENDPOINT"; do
       echo "Cluster endpoint is not accessible. Retrying in 3 seconds..."
       sleep 3
       done
