@@ -20,5 +20,3 @@ variable "config_path" {
   description = "Path for your Kube config file"
   type        = string
 }
-
-variable "eks_cluster_endpoint" {}
