@@ -4,6 +4,17 @@ provider "helm" {
   }
 }
 
+data "external" "eks_cluster_endpoint_check" {
+  program = ["bash", "-c", <<EOF
+    while ! curl --output /dev/null --silent --head --fail ${var.eks_cluster_endpoint}; do
+      echo "Cluster endpoint is not accessible. Retrying in 3 seconds..."
+      sleep 3
+    done
+    echo "Cluster endpoint is accessible"
+  EOF
+  ]
+}
+
 resource "kubernetes_service_account" "aws_load_balancer_controller" {
   metadata {
     name      = "aws-load-balancer-controller"
@@ -20,7 +31,7 @@ resource "kubernetes_service_account" "aws_load_balancer_controller" {
     }
   }
 
-  depends_on = [null_resource.patch_coredns,aws_eks_fargate_profile.fargate_profile]
+  depends_on = [data.external.eks_cluster_endpoint_check]
 }
 
 resource "helm_release" "aws-load-balancer-controller" {
