@@ -6,7 +6,7 @@ provider "helm" {
 
 data "external" "eks_cluster_endpoint_check" {
   program = ["bash", "-c", <<EOF
-    while ! curl --output /dev/null --silent --head --fail ${var.eks_cluster_endpoint}; do
+    while ! curl --output /dev/null --silent --head --fail "${eks_cluster_endpoint}"; do
       echo "Cluster endpoint is not accessible. Retrying in 3 seconds..."
       sleep 3
     done
