@@ -20,7 +20,7 @@ resource "kubernetes_service_account" "aws_load_balancer_controller" {
     }
   }
 
-  depends_on = [aws_eks_fargate_profile.fargate_profile]
+  depends_on = [null_resource.patch_coredns,aws_eks_fargate_profile.fargate_profile]
 }
 
 resource "helm_release" "aws-load-balancer-controller" {
