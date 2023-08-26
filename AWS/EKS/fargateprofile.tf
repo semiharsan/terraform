@@ -95,21 +95,37 @@ resource "null_resource" "patch_coredns" {
   depends_on = [aws_eks_fargate_profile.fargate_profile]
 }
 
-resource "kubernetes_service_account" "aws_load_balancer_controller" {
-  metadata {
-    name      = "aws-load-balancer-controller"
-    namespace = "kube-system"
-
-    labels = {
-      "app.kubernetes.io/component"       = "controller"
-      "app.kubernetes.io/name"            = "aws-load-balancer-controller"
-      "eks.amazonaws.com/fargate-profile" = var.fargate_profile_name
-    }
-
-    annotations = {
-      "eks.amazonaws.com/role-arn" = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/AmazonEKSLoadBalancerControllerRole"
-    }
-  }
-
-  depends_on = [null_resource.patch_coredns]
+resource "kubernetes_manifest" "aws_load_balancer_controller" {
+  manifest = <<EOF
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: aws-load-balancer-controller
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/name: aws-load-balancer-controller
+    eks.amazonaws.com/fargate-profile: ${var.fargate_profile_name}
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/AmazonEKSLoadBalancerControllerRole
+EOF
 }
+
+#resource "kubernetes_service_account" "aws_load_balancer_controller" {
+#  metadata {
+#    name      = "aws-load-balancer-controller"
+#    namespace = "kube-system"
+#
+#    labels = {
+#      "app.kubernetes.io/component"       = "controller"
+#      "app.kubernetes.io/name"            = "aws-load-balancer-controller"
+#      "eks.amazonaws.com/fargate-profile" = var.fargate_profile_name
+#    }
+#
+#    annotations = {
+#      "eks.amazonaws.com/role-arn" = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/AmazonEKSLoadBalancerControllerRole"
+#    }
+#  }
+#
+#  depends_on = [null_resource.patch_coredns]
+#}
