@@ -32,5 +32,5 @@ resource "helm_release" "aws-load-balancer-controller" {
     value = aws_vpc.main.id
   }
 
-  depends_on = [kubernetes_service_account.aws_load_balancer_controller]
+  depends_on = [kubernetes_manifest.aws_load_balancer_controller]
 }
