@@ -72,10 +72,15 @@ resource "aws_eks_fargate_profile" "fargate_profile" {
 #}
 
 provider "kubernetes" {
-  host                   = data.aws_eks_cluster.eks_cluster.endpoint
-  cluster_ca_certificate = base64decode(data.aws_eks_cluster.eks_cluster.certificate_authority.0.data)
-  token                  = data.aws_eks_cluster_auth.eks_cluster.token
+  host                   = aws_eks_cluster.eks_cluster.endpoint
+  cluster_ca_certificate = base64decode(aws_eks_cluster.eks_cluster.certificate_authority.0.data)
+  exec {
+    api_version = "client.authentication.k8s.io/v1beta1"
+    args        = ["eks", "get-token", "--cluster-name", var.cluster_name]
+    command     = "aws"
+  }
 }
+
 
 resource "null_resource" "patch_coredns" {
   triggers = {
@@ -97,7 +102,7 @@ resource "null_resource" "patch_coredns" {
     EOT
   }
 
-  depends_on = [aws_eks_cluster.eks_cluster]
+  depends_on = [aws_eks_fargate_profile.fargate_profile]
 }
 
 
