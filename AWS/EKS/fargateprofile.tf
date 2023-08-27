@@ -92,7 +92,6 @@ resource "null_resource" "patch_coredns" {
      EKS_CLUSTER_NAME = var.cluster_name  # This is your pipeline variable
     }
    command = <<-EOT
-      echo "Cluster Name : $EKS_CLUSTER_NAME"
       sudo -u jenkins aws eks update-kubeconfig --region $AWS_REGION --name $EKS_CLUSTER_NAME
       kubectl patch deployment coredns -n kube-system --type json -p='[{"op": "remove", "path": "/spec/template/metadata/annotations/eks.amazonaws.com~1compute-type"}]'
       kubectl rollout restart -n kube-system deployment coredns
