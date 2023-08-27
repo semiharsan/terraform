@@ -109,13 +109,6 @@ output "eks_cluster_endpoint" {
   value = aws_eks_cluster.eks_cluster.endpoint
 }
 
-data "aws_eks_cluster" "eks_cluster" {
-  name = var.cluster_name
-}
-
-data "aws_eks_cluster_auth" "eks_cluster" {
-  name = var.cluster_name
-}
 #################OIDC######################################################
 data "tls_certificate" "eks" {
   url = aws_eks_cluster.eks_cluster.identity[0].oidc[0].issuer
@@ -188,17 +181,3 @@ resource "aws_eks_addon" "kube-proxy" {
   resolve_conflicts_on_create = "OVERWRITE"
 }
 
-#################Provider Kubernetes & Helm####################################
-provider "kubernetes" {
-  host                   = data.aws_eks_cluster.eks_cluster.endpoint
-  cluster_ca_certificate = base64decode(data.aws_eks_cluster.eks_cluster.certificate_authority.0.data)
-  token                  = data.aws_eks_cluster_auth.eks_cluster.token
-}
-
-provider "helm" {
-  kubernetes {
-    host                   = data.aws_eks_cluster.eks_cluster.endpoint
-    cluster_ca_certificate = base64decode(data.aws_eks_cluster.eks_cluster.certificate_authority.0.data)
-    token                  = data.aws_eks_cluster_auth.eks_cluster.token
-  }
-}
