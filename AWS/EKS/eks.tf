@@ -187,3 +187,18 @@ resource "aws_eks_addon" "kube-proxy" {
   cluster_name      = aws_eks_cluster.eks_cluster.name
   resolve_conflicts_on_create = "OVERWRITE"
 }
+
+#################Provider Kubernetes & Helm####################################
+provider "kubernetes" {
+  host                   = data.aws_eks_cluster.eks_cluster.endpoint
+  cluster_ca_certificate = base64decode(data.aws_eks_cluster.eks_cluster.certificate_authority.0.data)
+  token                  = data.aws_eks_cluster_auth.eks_cluster.token
+}
+
+provider "helm" {
+  kubernetes {
+    host                   = data.aws_eks_cluster.eks_cluster.endpoint
+    cluster_ca_certificate = base64decode(data.aws_eks_cluster.eks_cluster.certificate_authority.0.data)
+    token                  = data.aws_eks_cluster_auth.eks_cluster.token
+  }
+}
