@@ -78,6 +78,7 @@ resource "null_resource" "patch_coredns" {
     }
    command = <<-EOT
       kubectl config use-context $EKS_CLUSTER_NAME
+      echo "Current kubectl context: $(kubectl config current-context)"
       kubectl patch deployment coredns -n kube-system --type json -p='[{"op": "remove", "path": "/spec/template/metadata/annotations/eks.amazonaws.com~1compute-type"}]'
       kubectl rollout restart -n kube-system deployment coredns
       kubectl -n kube-system wait deployment/coredns --for=condition=Available --timeout=60s
