@@ -129,8 +129,8 @@ resource "aws_iam_policy" "eks_console_access_policy" {
   policy      = data.aws_iam_policy_document.eks_console_access_policy.json
 }
 
-resource "aws_iam_policy_attachment" "eks_console_access_policy_attachment" {
-  name       = "eks-console-access-policy-attachment"
+resource "aws_iam_user_policy_attachment" "eks_console_access_policy_attachment" {
+  user       = var.iam_user_name
   policy_arn = aws_iam_policy.eks_console_access_policy.arn
 }
 
