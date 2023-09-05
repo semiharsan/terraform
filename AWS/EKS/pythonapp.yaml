@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hellopython
+spec:
+  selector:
+    matchLabels:
+      app: hellopython
+  replicas: 2 # tells deployment to run 2 pods matching the template
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+
+  template:
+    metadata:
+      labels:
+        app: hellopython
+    spec:
+      containers:
+      - name: hellopython
+        image: semiharsan/pythonapp:v10
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hellopython-service
+  labels:
+    app: hellopython
+spec:
+  selector:
+    app: hellopython
+  type: LoadBalancer
+  ports:
+    - port: 8000
+      targetPort: 8000
+      nodePort: 31700
