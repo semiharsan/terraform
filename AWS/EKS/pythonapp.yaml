@@ -2,11 +2,12 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: hellopython
+  namespace: default
 spec:
   selector:
     matchLabels:
       app: hellopython
-  replicas: 2 # tells deployment to run 2 pods matching the template
+  replicas: 2
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -20,7 +21,7 @@ spec:
     spec:
       containers:
       - name: hellopython
-        image: semiharsan/pythonapp:v10
+        image: 527410021310.dkr.ecr.eu-west-2.amazonaws.com/arsit-ecr-repo:pythonapp
         imagePullPolicy: Always
         ports:
         - containerPort: 8000
@@ -29,13 +30,37 @@ apiVersion: v1
 kind: Service
 metadata:
   name: hellopython-service
+  namespace: default
   labels:
     app: hellopython
 spec:
   selector:
     app: hellopython
-  type: LoadBalancer
+  type: ClusterIP
   ports:
-    - port: 8000
+    - port: 80
       targetPort: 8000
-      nodePort: 31700
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: hellopython-ingress-app
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: pythondemo.arsit.tech
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: hellopython-service
+                port:
+                  number: 80
+  tls:
+    - hosts:
+        - pythondemo.arsit.tech
+      secretName: arsit-tls
