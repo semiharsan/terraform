@@ -15,6 +15,8 @@ resource "aws_vpc" "main" {
   tags = {
     Name                          = "${var.cluster_name}_Vpc"
     "kubernetes.io/cluster-name"  = var.cluster_name
+    "k8s.io/v1alpha1/cluster-name" = var.cluster_name
+    "kubernetes.io/cluster/${var.cluster_name}" = "owned"
   }
 
 }
@@ -23,9 +25,10 @@ resource "aws_vpc" "main" {
 resource "aws_internet_gateway" "igw" {
   vpc_id = aws_vpc.main.id
 
-    tags = {
+  tags = {
     Name                         = "${var.cluster_name}_Internet_Gateway"
     "kubernetes.io/cluster-name" = var.cluster_name
+    "k8s.io/v1alpha1/cluster-name" = var.cluster_name
   }
 }
 
@@ -42,6 +45,8 @@ resource "aws_subnet" "private" {
 
   tags = {
     Name = "${var.cluster_name}_Private_Subnet_${local.availability_zones[count.index]}"
+    "kubernetes.io/cluster-name" = var.cluster_name
+    "k8s.io/v1alpha1/cluster-name" = var.cluster_name
     "kubernetes.io/role/internal-elb"           = "1"
     "kubernetes.io/cluster/${var.cluster_name}" = "owned"
   }
@@ -56,6 +61,8 @@ resource "aws_subnet" "public" {
 
   tags = {
     Name = "${var.cluster_name}_Public_Subnet_${local.availability_zones[count.index]}"
+    "kubernetes.io/cluster-name" = var.cluster_name
+    "k8s.io/v1alpha1/cluster-name" = var.cluster_name
     "kubernetes.io/role/elb"                    = "1"
     "kubernetes.io/cluster/${var.cluster_name}" = "owned"
   }
@@ -68,6 +75,7 @@ resource "aws_eip" "nat" {
   tags = {
     Name = "${var.cluster_name}_EIP"
     "kubernetes.io/cluster-name" = var.cluster_name
+    "k8s.io/v1alpha1/cluster-name" = var.cluster_name
   }
 }
 
@@ -78,6 +86,8 @@ resource "aws_nat_gateway" "nat" {
   tags = {
     Name = "${var.cluster_name}_NAT_Gateway"
     "kubernetes.io/cluster-name" = var.cluster_name
+    "k8s.io/v1alpha1/cluster-name" = var.cluster_name
+    "kubernetes.io/cluster/${var.cluster_name}" = "owned"
   }
 }
 
@@ -94,6 +104,8 @@ resource "aws_route_table" "private" {
   tags = {
     Name = "${var.cluster_name}_Private_Route_Table_${local.availability_zones[count.index]}"
     "kubernetes.io/cluster-name" = var.cluster_name
+    "k8s.io/v1alpha1/cluster-name" = var.cluster_name
+    "kubernetes.io/cluster/${var.cluster_name}" = "owned"
   }
 }
 
@@ -108,6 +120,8 @@ resource "aws_route_table" "public" {
   tags = {
     Name = "${var.cluster_name}_Public_Route_Table}"
     "kubernetes.io/cluster-name" = var.cluster_name
+    "k8s.io/v1alpha1/cluster-name" = var.cluster_name
+    "kubernetes.io/cluster/${var.cluster_name}" = "owned"
   }
 }
 
@@ -121,4 +135,49 @@ resource "aws_route_table_association" "public" {
   count          = length(aws_subnet.public)
   subnet_id      = aws_subnet.public[count.index].id
   route_table_id = aws_route_table.public.id
+}
+
+################Security Groups######################################################
+resource "aws_security_group" "cluster_shared_node_security_group" {
+  count        = 1
+  name         = "${var.cluster_name}-ClusterSharedNodeSecurityGroup"
+  description  = "Communication between all nodes in the cluster"
+  vpc_id       = aws_vpc.main.id
+  ingress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  egress {
+    from_port       = 0
+    to_port         = 0
+    protocol        = "-1"
+    cidr_blocks     = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "${var.cluster_name}/ClusterSharedNodeSecurityGroup"
+    "kubernetes.io/cluster-name" = var.cluster_name
+    "k8s.io/v1alpha1/cluster-name" = var.cluster_name
+  }
+}
+
+resource "aws_security_group" "control_plane_security_group" {
+  count        = 1
+  name         = "${var.cluster_name}-ControlPlaneSecurityGroup"
+  description  = "Communication between the control plane and worker nodegroups"
+  vpc_id       = aws_vpc.main.id
+  egress {
+    from_port       = 0
+    to_port         = 0
+    protocol        = "-1"
+    cidr_blocks     = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "${var.cluster_name}/ControlPlaneSecurityGroup"
+    "kubernetes.io/cluster-name" = var.cluster_name
+    "k8s.io/v1alpha1/cluster-name" = var.cluster_name
+  }
 }
