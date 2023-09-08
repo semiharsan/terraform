@@ -57,12 +57,25 @@ resource "aws_eks_fargate_profile" "fargate_profile" {
     }
   }
   selector {
+    namespace = "cert-manager"
+    labels = {
+      "app.kubernetes.io/instance" = "cert-manager"
+    }
+  }
+  selector {
+    namespace = "ingress-nginx"
+    labels = {
+      "app.kubernetes.io/name" = "ingress-nginx"
+    }
+  }
+  selector {
     namespace = "default"
   }
   
   tags = {
     Name = var.fargate_profile_name
     "kubernetes.io/cluster-name" = var.cluster_name
+    "k8s.io/v1alpha1/cluster-name" = var.cluster_name
   }
 }
 
@@ -83,7 +96,10 @@ resource "null_resource" "patch_coredns" {
       kubectl rollout restart -n kube-system deployment coredns
       kubectl -n kube-system wait deployment/coredns --for=condition=Available --timeout=60s
       kubectl -n kube-system wait pods -l k8s-app=kube-dns --for=condition=Ready --timeout=60s
-      kubectl -n kube-system get all
+      kubectl apply -f https://raw.githubusercontent.com/semiharsan/terraform/main/AWS/EKS/cert-manager.yaml
+      kubectl apply -f https://raw.githubusercontent.com/semiharsan/terraform/main/AWS/EKS/nginx-ingress-controller.yaml
+      kubectl apply -k "github.com/aws/eks-charts/stable/aws-load-balancer-controller/crds?ref=master"
+      kubectl get all --all-namespaces
     EOT
   }
 
