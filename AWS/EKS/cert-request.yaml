@@ -1,0 +1,45 @@
+#########################CloudFlare API KEY###############################
+apiVersion: v1
+kind: Secret
+metadata:
+  name: cloudflare-api-key-secret
+  namespace: cert-manager
+type: Opaque
+stringData:
+  api-key: 62dda0f2489a9c4674985f477b6334fa8544c
+#########################Cluster Cert Issuer###############################
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: semih.arsan@arsit.tech
+    privateKeySecretRef:
+      name: letsencrypt-prod-account-key
+    solvers:
+      - dns01:
+          cloudflare:
+            email: semih.arsan@arsit.tech
+            apiKeySecretRef:
+              name: cloudflare-api-key-secret
+              key: api-key
+        selector:
+          dnsNames:
+            - '*.arsit.tech'
+#########################Certificate Request###############################
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: arsit-cert
+spec:
+  secretName: arsit-tls
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+  commonName: '*.arsit.tech'
+  dnsNames:
+    - '*.arsit.tech'
