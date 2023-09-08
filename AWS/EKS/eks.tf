@@ -17,6 +17,8 @@ resource "aws_iam_role" "eks_cluster" {
 
   tags = {
     Name = "${var.cluster_name}-EKSCluster-Role"
+    "kubernetes.io/cluster-name" = var.cluster_name
+    "k8s.io/v1alpha1/cluster-name" = var.cluster_name
   }
 }
 
@@ -179,7 +181,70 @@ resource "aws_iam_role_policy_attachment" "aws_load_balancer_controller_attach" 
 output "aws_load_balancer_controller_role_arn" {
   value = aws_iam_role.aws_load_balancer_controller.arn
 }
-################wAWS EKS Cluster######################################################
+
+################AWS Cert Manager Policy Role#################################################
+resource "aws_iam_role" "alb_awspcaissuer" {
+    name = "AWSPCAIssuerIAMPolicyRole"
+  
+    assume_role_policy = jsonencode({
+      Version = "2012-10-17"
+      Statement = [
+      {
+        "Effect": "Allow",
+        "Condition": {
+           "StringEquals": {
+            "${aws_iam_openid_connect_provider.eks.url}:aud": "sts.amazonaws.com",
+            "${aws_iam_openid_connect_provider.eks.url}:sub": "system:serviceaccount:aws-pca-issuer:aws-pca-issuer"
+           }
+        },
+        "Principal": {
+            "Federated": "arn:aws:iam::${data.aws_caller_identity.current.account_id}:oidc-provider/${aws_iam_openid_connect_provider.eks.url}"
+        },
+        "Action": "sts:AssumeRoleWithWebIdentity"
+      }
+    ]
+    })
+  
+    tags = {
+      Name = "AWSPCAIssuerIAMPolicyRole"
+      "kubernetes.io/cluster-name" = var.cluster_name
+      "k8s.io/v1alpha1/cluster-name" = var.cluster_name
+      "kubernetes.io/iamserviceaccount-name" = "aws-pca-issuer/aws-pca-issuer"
+    }
+
+    depends_on = [aws_iam_openid_connect_provider.eks]
+}
+
+data "aws_iam_policy_document" "alb_awspcaissuer" {
+    version = "2012-10-17"
+  
+    statement {
+      sid       = "awspcaissuer"
+      actions   = [
+        "acm-pca:DescribeCertificateAuthority",
+        "acm-pca:GetCertificate",
+        "acm-pca:IssueCertificate"
+      ]
+      resources = ["arn:aws:acm-pca:${var.region}:${data.aws_caller_identity.current.account_id}:certificate-authority/*"]
+      effect    = "Allow"
+    }
+  }
+  
+resource "aws_iam_policy" "alb_awspcaissuer" {
+  name        = "AWSPCAIssuerIAMPolicy"
+  policy      = data.aws_iam_policy_document.alb_awspcaissuer.json
+}
+
+resource "aws_iam_role_policy_attachment" "alb_awspcaissuer_attach" {
+  role       = aws_iam_role.alb_awspcaissuer.name
+  policy_arn = aws_iam_policy.alb_awspcaissuer.arn
+}
+
+output "alb_awspcaissuer_role_arn" {
+  value = aws_iam_role.alb_awspcaissuer.arn
+}
+
+################AWS EKS Cluster######################################################
 resource "aws_eks_cluster" "eks_cluster" {
   name     = var.cluster_name
   role_arn = aws_iam_role.eks_cluster.arn
@@ -189,10 +254,18 @@ resource "aws_eks_cluster" "eks_cluster" {
     endpoint_private_access = false
     endpoint_public_access  = true
     subnet_ids              = concat(aws_subnet.public[*].id,aws_subnet.private[*].id)
+    security_group_ids      = [aws_security_group.control_plane_security_group[0].id]
     public_access_cidrs     = ["0.0.0.0/0"]
   }
   
   depends_on = [aws_subnet.public,aws_subnet.private]
+
+  tags = {
+    Name = "${var.cluster_name}/ControlPlane"
+    "kubernetes.io/cluster-name" = var.cluster_name
+    "k8s.io/v1alpha1/cluster-name" = var.cluster_name
+  }
+
 }
 
 output "eks_cluster_endpoint" {
@@ -236,6 +309,9 @@ resource "kubernetes_config_map" "aws_auth" {
       - groups:
         - system:bootstrappers
         - system:nodes
+        - system:node-proxier
+        rolearn: arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.cluster_name}-Fargate-Profile-Role
+        username: system:node:{{SessionName}}
         rolearn: arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/EKSClusterConsoleAccessPolicy
         username: system:node:{{EC2PrivateDNSName}}
       - groups:
