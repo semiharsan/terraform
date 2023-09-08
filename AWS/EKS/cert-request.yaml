@@ -28,7 +28,7 @@ spec:
               key: api-key
         selector:
           dnsNames:
-            - '*.arsit.tech'
+            - ${dnsName}
 #########################Certificate Request###############################
 ---
 apiVersion: cert-manager.io/v1
@@ -42,4 +42,4 @@ spec:
     kind: ClusterIssuer
   commonName: '*.arsit.tech'
   dnsNames:
-    - '*.arsit.tech'
+    - ${dnsName}
