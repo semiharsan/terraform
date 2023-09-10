@@ -96,6 +96,7 @@ resource "null_resource" "patch_coredns" {
       kubectl rollout restart -n kube-system deployment coredns
       kubectl -n kube-system wait pods -l k8s-app=kube-dns --for=condition=Ready --timeout=90s
       kubectl apply -f https://raw.githubusercontent.com/semiharsan/terraform/main/AWS/EKS/cert-manager.yaml
+      kubectl -n cert-manager wait deployment -l app.kubernetes.io/instance=cert-manager --for=condition=Available --timeout=60s
       kubectl apply -k "github.com/aws/eks-charts/stable/aws-load-balancer-controller/crds?ref=master"
       kubectl get all --all-namespaces
     EOT
