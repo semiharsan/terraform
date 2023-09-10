@@ -94,8 +94,7 @@ resource "null_resource" "patch_coredns" {
       aws eks update-kubeconfig --region $AWS_REGION --name $EKS_CLUSTER_NAME
       kubectl patch deployment coredns -n kube-system --type json -p='[{"op": "remove", "path": "/spec/template/metadata/annotations/eks.amazonaws.com~1compute-type"}]'
       kubectl rollout restart -n kube-system deployment coredns
-      kubectl -n kube-system wait deployment/coredns --for=condition=Available --timeout=60s
-      kubectl -n kube-system wait pods -l k8s-app=kube-dns --for=condition=Ready --timeout=60s
+      kubectl -n kube-system wait pods -l k8s-app=kube-dns --for=condition=Ready --timeout=90s
       kubectl apply -f https://raw.githubusercontent.com/semiharsan/terraform/main/AWS/EKS/cert-manager.yaml
       kubectl apply -k "github.com/aws/eks-charts/stable/aws-load-balancer-controller/crds?ref=master"
       kubectl get all --all-namespaces
