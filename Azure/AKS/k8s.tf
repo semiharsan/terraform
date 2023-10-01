@@ -87,6 +87,7 @@ resource "null_resource" "enable_aks_preview_extension" {
       az aks get-credentials --resource-group=${var.resource_group_name} --name=${var.cluster_name} --overwrite-existing
       kubectl apply -f cert-manager.yaml
       az extension add --name aks-preview
+      az aks enable-addons -g ${var.resource_group_name} -n ${var.cluster_name} --addons azure-keyvault-secrets-provider,web_application_routing --enable-secret-rotation
       kubectl get all --all-namespaces
     EOT
   }
