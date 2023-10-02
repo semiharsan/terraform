@@ -75,6 +75,46 @@ resource "azurerm_container_registry" "arsitaks" {
   admin_enabled            = true
 }
 
+resource "azurerm_role_assignment" "acr_to_aks" {
+  principal_id          = azurerm_kubernetes_cluster.arsitaks.identity[0].principal_id
+  role_definition_name  = "AcrPull"
+  scope                 = azurerm_container_registry.arsitaks.id
+}
+
+provider "kubernetes" {
+  host                   = azurerm_kubernetes_cluster.arsitaks.kube_config[0].host
+  client_certificate     = base64decode(azurerm_kubernetes_cluster.arsitaks.kube_config[0].client_certificate)
+  client_key             = base64decode(azurerm_kubernetes_cluster.arsitaks.kube_config[0].client_key)
+  cluster_ca_certificate = base64decode(azurerm_kubernetes_cluster.arsitaks.kube_config[0].cluster_ca_certificate)
+  exec {
+    api_version = "client.authentication.k8s.io/v1beta1"
+    command     = "az"
+    args        = ["aks", "get-credentials", "--resource-group", var.resource_group_name, "--name", var.cluster_name, "--overwrite-existing"]
+  }
+}
+
+resource "kubernetes_secret" "acr_auth" {
+  metadata {
+    name = "acr-auth"
+  }
+
+  type = "kubernetes.io/dockerconfigjson"
+
+  data = {
+    ".dockerconfigjson" = jsonencode({
+      auths = {
+        "${azurerm_container_registry.arsitaks.login_server}" = {
+          username = azurerm_container_registry.arsitaks.admin_username
+          password = azurerm_container_registry.arsitaks.admin_password
+          auth     = base64encode("${azurerm_container_registry.arsitaks.admin_username}:${azurerm_container_registry.arsitaks.admin_password}")
+        }
+      }
+    })
+  }
+
+  depends_on = [azurerm_kubernetes_cluster.arsitaks]
+}
+
 resource "null_resource" "enable_aks_preview_extension" {
   triggers = {
     always_run = "${timestamp()}"
